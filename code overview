@@ -1,0 +1,44 @@
+import requests
+from flask import Flask, request, jsonify
+from transformers import pipeline
+import groq
+
+groq_api_key = "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"
+groq_client = groq.Client(api_key=groq_api_key)
+
+gemini_pipeline = pipeline("text-generation", model="gemini-large")
+
+def generate_gemini_text(prompt):
+    response = gemini_pipeline(prompt, max_length=100, num_return_sequences=1)
+    return response[0]['generated_text']
+
+def perform_groq_computation(data):
+    computation = groq_client.perform_computation(data)
+    return computation['result']
+
+@app.route('/gemini', methods=['POST'])
+def gemini():
+    user_input = request.json.get("input")
+    generated_text = generate_gemini_text(user_input)
+    return jsonify({"response": generated_text})
+
+@app.route('/groq', methods=['POST'])
+def groq_compute():
+    data = request.json.get("data")
+    result = perform_groq_computation(data)
+    return jsonify({"result": result})
+
+@app.route('/copilot', methods=['POST'])
+def copilot():
+    action = request.json.get("action")
+    if action == "generate_text":
+        user_input = request.json.get("input")
+        response = generate_gemini_text(user_input)
+        return jsonify({"response": response})
+    elif action == "groq_computation":
+        data = request.json.get("data")
+        result = perform_groq_computation(data)
+        return jsonify({"result": result})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
